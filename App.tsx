@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Dimensions,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -11,17 +12,7 @@ type Tile = number | null;
 
 const GRID_SIZE = 3;
 const WIN_STATE: Tile[] = [1, 2, 3, 4, 5, 6, 7, 8, null];
-
-const shuffleTiles = (): Tile[] => {
-  const arr: Tile[] = [...WIN_STATE];
-
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-
-  return arr;
-};
+const SHUFFLE_MOVES = 150;
 
 const findEmptyIndex = (tiles: Tile[]): number => tiles.findIndex((tile) => tile === null);
 
@@ -34,13 +25,47 @@ const areAdjacent = (from: number, to: number): boolean => {
   return Math.abs(fromRow - toRow) + Math.abs(fromCol - toCol) === 1;
 };
 
+const isWinningState = (tiles: Tile[]): boolean =>
+  tiles.every((value, index) => value === WIN_STATE[index]);
+
+const getValidMoves = (tiles: Tile[]): number[] => {
+  const emptyIndex = findEmptyIndex(tiles);
+
+  return tiles.reduce<number[]>((moves, _tile, index) => {
+    if (areAdjacent(index, emptyIndex)) {
+      moves.push(index);
+    }
+
+    return moves;
+  }, []);
+};
+
+// Make random valid moves from the winning state so every shuffle is solvable.
+const shuffleTiles = (): Tile[] => {
+  let shuffled: Tile[] = [...WIN_STATE];
+
+  do {
+    shuffled = [...WIN_STATE];
+
+    for (let i = 0; i < SHUFFLE_MOVES; i += 1) {
+      const emptyIndex = findEmptyIndex(shuffled);
+      const validMoves = getValidMoves(shuffled);
+      const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+
+      [shuffled[emptyIndex], shuffled[randomMove]] = [
+        shuffled[randomMove],
+        shuffled[emptyIndex],
+      ];
+    }
+  } while (isWinningState(shuffled));
+
+  return shuffled;
+};
+
 export default function App() {
   const [tiles, setTiles] = useState<Tile[]>(shuffleTiles);
 
-  const isSolved = useMemo(
-    () => tiles.every((value, index) => value === WIN_STATE[index]),
-    [tiles],
-  );
+  const isSolved = useMemo(() => isWinningState(tiles), [tiles]);
 
   const moveTile = (tileIndex: number) => {
     setTiles((prev) => {
@@ -50,9 +75,11 @@ export default function App() {
         return prev;
       }
 
-      const next = [...prev];
-      [next[tileIndex], next[emptyIndex]] = [next[emptyIndex], next[tileIndex]];
-      return next;
+      const updated = [...prev];
+      updated[emptyIndex] = prev[tileIndex];
+      updated[tileIndex] = null;
+
+      return updated;
     });
   };
 
@@ -74,7 +101,7 @@ export default function App() {
               key={index}
               style={[styles.tile, isEmpty && styles.emptyTile]}
               onPress={() => moveTile(index)}
-              disabled={isEmpty}
+              disabled={isEmpty || isSolved}
             >
               {!isEmpty && <Text style={styles.tileText}>{tile}</Text>}
             </TouchableOpacity>
@@ -90,6 +117,9 @@ export default function App() {
     </SafeAreaView>
   );
 }
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const GRID_WIDTH = Math.min(SCREEN_WIDTH - 32, 340);
 
 const styles = StyleSheet.create({
   container: {
@@ -112,18 +142,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   grid: {
-    width: 300,
-    height: 300,
+    width: GRID_WIDTH,
+    height: GRID_WIDTH,
     flexDirection: 'row',
     flexWrap: 'wrap',
     backgroundColor: '#dce3ef',
     borderRadius: 16,
     padding: 8,
-    gap: 8,
+    justifyContent: 'space-between',
+    alignContent: 'space-between',
   },
   tile: {
-    width: 89.33,
-    height: 89.33,
+    width: '31.5%',
+    height: '31.5%',
     borderRadius: 12,
     backgroundColor: '#3f51b5',
     alignItems: 'center',
