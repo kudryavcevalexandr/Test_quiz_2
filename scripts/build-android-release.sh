@@ -18,14 +18,10 @@ else
   npm install
 fi
 
-if ! node -e "require.resolve('@react-native-community/cli/package.json')" >/dev/null 2>&1; then
-  npm install --no-save --no-package-lock @react-native-community/cli@latest
-fi
-
 mkdir -p android/app/src/main/assets
 mkdir -p android/app/src/main/res
 
-npx react-native bundle \
+npx expo export:embed \
   --platform android \
   --dev false \
   --entry-file index.js \
