@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import CameraPreview from './CameraPreview';
 import {
   Dimensions,
   SafeAreaView,
@@ -64,6 +65,7 @@ const shuffleTiles = (): Tile[] => {
 
 export default function App() {
   const [tiles, setTiles] = useState<Tile[]>(shuffleTiles);
+  const [showCamera, setShowCamera] = useState(false);
 
   const isSolved = useMemo(() => isWinningState(tiles), [tiles]);
 
@@ -87,32 +89,52 @@ export default function App() {
     setTiles(shuffleTiles());
   };
 
+  const toggleCamera = () => {
+    setShowCamera((previous) => !previous);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Пятнашки 3x3</Text>
       <Text style={styles.subtitle}>Разложите квадратные блоки по порядку</Text>
 
-      <View style={styles.grid}>
-        {tiles.map((tile, index) => {
-          const isEmpty = tile === null;
+      <View style={styles.contentRow}>
+        <View style={styles.gamePanel}>
+          <View style={styles.grid}>
+            {tiles.map((tile, index) => {
+              const isEmpty = tile === null;
 
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[styles.tile, isEmpty && styles.emptyTile]}
-              onPress={() => moveTile(index)}
-              disabled={isEmpty || isSolved}
-            >
-              {!isEmpty && <Text style={styles.tileText}>{tile}</Text>}
-            </TouchableOpacity>
-          );
-        })}
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.tile, isEmpty && styles.emptyTile]}
+                  onPress={() => moveTile(index)}
+                  disabled={isEmpty || isSolved}
+                >
+                  {!isEmpty && <Text style={styles.tileText}>{tile}</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {isSolved && <Text style={styles.winText}>Готово! Вы собрали порядок 🎉</Text>}
+
+          <TouchableOpacity style={styles.button} onPress={reset}>
+            <Text style={styles.buttonText}>Перемешать заново</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showCamera && (
+          <View style={styles.cameraPanel}>
+            <CameraPreview />
+          </View>
+        )}
       </View>
 
-      {isSolved && <Text style={styles.winText}>Готово! Вы собрали порядок 🎉</Text>}
-
-      <TouchableOpacity style={styles.button} onPress={reset}>
-        <Text style={styles.buttonText}>Перемешать заново</Text>
+      <TouchableOpacity style={[styles.button, styles.cameraButton]} onPress={toggleCamera}>
+        <Text style={styles.buttonText}>
+          {showCamera ? 'Выключить камеру' : 'Включить камеру'}
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -140,6 +162,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#607d8b',
     textAlign: 'center',
+  },
+  contentRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  gamePanel: {
+    alignItems: 'center',
+  },
+  cameraPanel: {
+    width: Math.min(SCREEN_WIDTH - 32, 340),
   },
   grid: {
     width: GRID_WIDTH,
@@ -180,6 +216,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
+  },
+  cameraButton: {
+    backgroundColor: '#3f51b5',
   },
   buttonText: {
     color: '#fff',
